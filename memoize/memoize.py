@@ -1,62 +1,44 @@
+# encoding: utf-8
 import functools
-import datetime
-
-
-def memoize(obj):
-    cache = obj.cache = {}
-
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        key = str(args) + str(kwargs)
-        if key not in cache:
-            cache[key] = obj(*args, **kwargs)
-        return cache[key]
-    return memoizer
-
-
-# можно описать это через класс с вызово __call__(self, *args, **kwargs)
-class mem(object):
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-
-    def __call__(self, *args, **kwargs):
-        key = str(args) + str(kwargs)
-        if key not in self.cache:
-            self.cache[key] = self.func(*args, **kwargs)
-        return self.cache[key]
-
-
-@dec
-def func 
-==> func = dec(func)
-
-@dec(param)
-def func
-==> func = dec(param)(func)
+import time
 
 
 def mem(max_size=None, max_time=None):
     def memoize(obj):
-        # здесь добавить учет max_size:
-        # if max_size not none add key to cache_order_list and
-        # kick cache from list where length of queue > max_size:
-        # add timestamp to obj.cache objects and check timestamp of prev. cache value:
+        # TODO: можно добавить модуль, который бы читал/писал кэши в файлы "опционально"
+        # TODO: возможно, стоит различать ф-ции с хешируемым набором параметров и с не хешируемым
+        # и по разному организовать для них хранение пары ключ - кэш
         cache_order = obj.cache_order = []
         cache = obj.cache = {}
 
         @functools.wraps(obj)
         def memoizer(*args, **kwargs):
             key = str(args) + str(kwargs)
-            if max_size:
-                if len(cache_order) > max_size:
-                    cache[cache_order[0]].discard() # pop
-                    # 
-            if max_time:
-
+            add_key_to_cache = False
             if key not in cache:
-                # cache[key] = {'result': None, 'timestamp': None}
-                cache[key] = obj(*args, **kwargs)
+                add_key_to_cache = True
+            # если есть какие-то ограничения по размеру или времени хранения кэша:
+            elif max_size or max_time:
+                if max_size and len(cache_order) > max_size:
+                    # если очередь великовата - убиваем элемент, к которому дольше всего не обращались:
+                    add_key_to_cache = True
+                    cache[cache_order[0]].discard()
+                    del cache_order[0]
+                if max_time and (time.time() - cache[key]['time']) > max_time:
+                    # если "протухло по времени", убиваем:
+                    add_key_to_cache = True
+                    cache.pop(key, None)
+                    cache_order.remove(key)
+            if add_key_to_cache:
+                cache[key] = {'result': obj(*args, **kwargs), 'time': time.time()}
+                # заполнять "очередь" имеет смысл только, если у нас выставлено ограничение:
+                if max_size:
+                    cache_order.append(key)
+            elif max_size:
+                # передвигаем вызванную ф-цию в конец списка ("продлеваем" для нее кэш), то есть чем чаще
+                # ф-ция используется с такими параметрами, тем меньше у нее шансов выпасть из кэша:
+                cache_order.remove(key)
+                cache_order.append(key)
             return cache[key]
         return memoizer
     return memoize
