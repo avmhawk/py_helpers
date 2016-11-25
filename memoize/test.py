@@ -1,12 +1,12 @@
 # encoding: utf-8
 import unittest
 import time
-from memoize import mem
+from memoize import memoize_with_params
 
 
 class TestMemoizeFunction(unittest.TestCase):
     def test_functions_with_different_args(self):
-        @mem()
+        @memoize_with_params()
         def test_func(a, b, c):
             # для интов <= 256 питон кэширует значения:
             const = 1234
@@ -23,7 +23,7 @@ class TestMemoizeFunction(unittest.TestCase):
         self.assertEqual(id(test_func(a=2, b=3, c=4)), id(test_func(a=2, b=3, c=4)))
 
     def test_cache_size_and_time_restrictions(self):
-        @mem(max_size=2)
+        @memoize_with_params(max_size=2)
         def test_func(*args):
             return sum([a + 1000 for a in args])
 
@@ -34,7 +34,7 @@ class TestMemoizeFunction(unittest.TestCase):
             test_func(1, 2, x)
         self.assertFalse(first_cached_id == id(test_func(1, 2, 0)))
 
-        @mem(max_time=1)
+        @memoize_with_params(max_time=1)
         def test_func2(*args):
             return sum([a + 1000 for a in args])
         first_cached_id = id(test_func2(1, 2, 0))

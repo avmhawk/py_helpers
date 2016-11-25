@@ -3,7 +3,7 @@ import functools
 import time
 
 
-def mem(max_size=None, max_time=None):
+def memoize_with_params(max_size=None, max_time=None):
     def memoize(obj):
         # TODO: можно добавить модуль, который бы читал/писал кэши в файлы "опционально"
         # TODO: возможно, стоит различать ф-ции с хешируемым набором параметров и с не хешируемым
@@ -12,7 +12,7 @@ def mem(max_size=None, max_time=None):
         cache = obj.cache = {}
 
         @functools.wraps(obj)
-        def memoizer(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             key = str(args) + str(kwargs)
             add_key_to_cache = False
             if key not in cache:
@@ -42,5 +42,5 @@ def mem(max_size=None, max_time=None):
                 cache_order.remove(key)
                 cache_order.append(key)
             return cache[key]['result']
-        return memoizer
+        return wrapper
     return memoize
