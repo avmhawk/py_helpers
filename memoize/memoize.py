@@ -18,17 +18,19 @@ def mem(max_size=None, max_time=None):
             if key not in cache:
                 add_key_to_cache = True
             # если есть какие-то ограничения по размеру или времени хранения кэша:
-            elif max_size or max_time:
-                if max_size and len(cache_order) > max_size:
-                    # если очередь великовата - убиваем элемент, к которому дольше всего не обращались:
-                    add_key_to_cache = True
-                    cache[cache_order[0]].discard()
-                    del cache_order[0]
-                if max_time and (time.time() - cache[key]['time']) > max_time:
-                    # если "протухло по времени", убиваем:
-                    add_key_to_cache = True
-                    cache.pop(key, None)
+            elif max_time and (time.time() - cache[key]['time']) > max_time:
+                # если "протухло по времени", убиваем:
+                add_key_to_cache = True
+                cache.pop(key, None)
+                if key in cache_order:
                     cache_order.remove(key)
+
+            if max_size and len(cache_order) >= max_size:
+                # если очередь великовата - убиваем элемент, к которому дольше всего не обращались:
+                add_key_to_cache = True
+                cache.pop(cache_order[0], None)
+                del cache_order[0]
+
             if add_key_to_cache:
                 cache[key] = {'result': obj(*args, **kwargs), 'time': time.time()}
                 # заполнять "очередь" имеет смысл только, если у нас выставлено ограничение:
@@ -39,6 +41,6 @@ def mem(max_size=None, max_time=None):
                 # ф-ция используется с такими параметрами, тем меньше у нее шансов выпасть из кэша:
                 cache_order.remove(key)
                 cache_order.append(key)
-            return cache[key]
+            return cache[key]['result']
         return memoizer
     return memoize
